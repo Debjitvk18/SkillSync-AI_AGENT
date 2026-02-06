@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Check User Role</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .error-box {
+            background: #ffe0e0;
+            border-left: 4px solid #e74c3c;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .success-box {
+            background: #e0ffe0;
+            border-left: 4px solid #27ae60;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        code {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        .danger {
+            background: #e74c3c;
+        }
+
+        .danger:hover {
+            background: #c0392b;
+        }
+
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔍 User Role Debug Tool</h1>
+
+        <div id="status"></div>
+
+        <div style="margin-top: 20px;">
+            <button onclick="checkRole()">🔄 Refresh Status</button>
+            <button onclick="makeAdmin()" class="success">👑 Make Me Admin</button>
+            <button onclick="clearAuth()" class="danger">🗑️ Clear Auth & Logout</button>
+            <button onclick="goToApp()">🚀 Go to App</button>
+        </div>
+    </div>
+
+    <script>
+        function checkRole() {
+            const statusDiv = document.getElementById('status');
+            const token = localStorage.getItem('token');
+            const userStr = localStorage.getItem('user');
+
+            let html = '<h2>Current Status</h2>';
+
+            if (!token) {
+                html += '<div class="error-box">';
+                html += '<strong>❌ Not Logged In</strong><br>';
+                html += 'No token found in localStorage.';
+                html += '</div>';
+            } else {
+                html += '<div class="info-box">';
+                html += '<strong>✅ Token Found</strong><br>';
+                html += '<code>' + token.substring(0, 30) + '...</code>';
+                html += '</div>';
+            }
+
+            if (!userStr) {
+                html += '<div class="error-box">';
+                html += '<strong>❌ No User Data</strong><br>';
+                html += 'No user object found in localStorage.';
+                html += '</div>';
+            } else {
+                try {
+                    const user = JSON.parse(userStr);
+                    html += '<div class="info-box">';
+                    html += '<strong>📋 User Data:</strong><br>';
+                    html += '<pre>' + JSON.stringify(user, null, 2) + '</pre>';
+                    html += '</div>';
+
+                    if (user.role === 'admin') {
+                        html += '<div class="success-box">';
+                        html += '<strong>🎉 You are an ADMIN!</strong><br>';
+                        html += 'You should be able to access the admin panel.';
+                        html += '</div>';
+                    } else {
+                        html += '<div class="error-box">';
+                        html += '<strong>⚠️ Not an Admin</strong><br>';
+                        html += 'Your current role is: <code>' + (user.role || 'user') + '</code><br>';
+                        html += 'You need admin role to access the admin panel.';
+                        html += '</div>';
+                    }
+                } catch (e) {
+                    html += '<div class="error-box">';
+                    html += '<strong>❌ Invalid User Data</strong><br>';
+                    html += 'Error parsing user data: ' + e.message;
+                    html += '</div>';
+                }
+            }
+
+            html += '<hr style="margin: 30px 0;">';
+            html += '<h3>How to Fix:</h3>';
+            html += '<div class="info-box">';
+            html += '<strong>Option 1: Use "Make Me Admin" Button Above</strong><br>';
+            html += 'This will update your localStorage to admin role (temporary fix).<br><br>';
+            html += '<strong>Option 2: Update Database</strong><br>';
+            html += 'Run this in MongoDB:<br>';
+            html += '<pre>db.users.updateOne(\n  { email: "your-email@example.com" },\n  { $set: { role: "admin" } }\n)</pre>';
+            html += '<strong>Option 3: Use the Script</strong><br>';
+            html += '<code>node scripts/create-admin.js your-email@example.com password</code>';
+            html += '</div>';
+
+            statusDiv.innerHTML = html;
+        }
+
+        function makeAdmin() {
+            const userStr = localStorage.getItem('user');
+            if (!userStr) {
+                alert('❌ No user data found. Please login first.');
+                return;
+            }
+
+            try {
+                const user = JSON.parse(userStr);
+                user.role = 'admin';
+                localStorage.setItem('user', JSON.stringify(user));
+                alert('✅ Success! You are now an admin in localStorage.\n\nNote: This is a TEMPORARY fix. To make it permanent, update the database.');
+                checkRole();
+            } catch (e) {
+                alert('❌ Error: ' + e.message);
+            }
+        }
+
+        function clearAuth() {
+            if (confirm('Are you sure? This will log you out.')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                alert('✅ Cleared! You are now logged out.');
+                checkRole();
+            }
+        }
+
+        function goToApp() {
+            window.location.href = '/';
+        }
+
+        // Run on load
+        checkRole();
+    </script>
+</body>
+
+</html>
